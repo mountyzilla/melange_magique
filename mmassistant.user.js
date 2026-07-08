@@ -3,7 +3,7 @@
 // @namespace    Mountyhall
 // @description  Assistant Mélange Magique & Affichage % de stabilisation des compos.
 // @author       Dabihul, Hennet, Lokidor, Nak1oeil, Mooga, Cageux
-// @version      2.3.3.18
+// @version      2.3.3.19
 // @license      MIT
 // @include      */mountyhall/MH_Play/Play_e_follo*
 // @include      */mountyhall/MH_Play/Play_equipement*
@@ -1455,6 +1455,41 @@ function traitementStockTaniere() {
 	);
 }
 
+function getBonusFromTR(tr) {
+	let infos = tr.getElementsByClassName("mmassistant_infos");
+	if (infos.length == 0) return 0;
+	let txt = infos[0].innerText;
+	let m = txt.match(/\[-*(\d+)[\s%]*\]/);
+	if (!m) return 0;
+	return parseInt(m[1]);
+}
+
+function triStockTaniere() {
+	let stockDiv = document.getElementById('stock');
+	if (!stockDiv) {
+		window.console.warn("[mmassistant] triStockTaniere_log : Aucun stock trouvé");
+		return;
+	}
+	let stockTable = stockDiv.getElementsByTagName('table')[0];
+	if (!stockTable) {
+		window.console.warn("[mmassistant] triStockTaniere_log : Aucune table dans le stock");
+		return;
+	}
+	let tBody = stockTable.tBodies[0];
+	let tabTR = [];
+	for (let tr of tBody.rows) {
+		tabTR.push(tr);
+	}
+	tabTR.sort(function(a, b) {
+		let va = getBonusFromTR(a);
+		let vb = getBonusFromTR(b);
+		if (va > vb) return 1;
+		if (va < vb) return -1;
+		return 0;
+	});
+	for (let tr of tabTR) tBody.prepend(tr);
+}
+
 function traitementListeAchatTaniere() {
 // Traitement de la liste d'Achat d'un lieu tanière (onglet lieu)
 	if(MODE_DEBUG) {
@@ -1903,16 +1938,21 @@ else if(isPage("MH_Play/Play_a_Action")) {
 	else if (location.search.startsWith("?type=L&id=-3&service=13") && urlParams.get('lieu') && urlParams.get('s_t') == 'Composant') {
 		// Ajout du bouton Relaunch (utile si +500 compos)
 		var button = document.getElementById('loadMore');
-		relaunchButton = document.createElement("input");
+		let relaunchButton = document.createElement("input");
 		relaunchButton.type = "button";
 		relaunchButton.className = "mh_form_submit";
 		relaunchButton.value = "Réanalyser les Composants";
-		relaunchButton.onmouseover = function() {
-		this.style.cursor="pointer";
-		};
+		relaunchButton.style.cursor = "pointer";
 		relaunchButton.onclick = traitementStockTaniere;
+		let sortButton = document.createElement("input");
+		sortButton.type = "button";
+		sortButton.className = "mh_form_submit";
+		sortButton.value = "Tri";
+		sortButton.style.cursor = "pointer";
+		sortButton.onclick = triStockTaniere;
 		if (button && button.parentNode) {
 			button.parentNode.insertBefore(relaunchButton, button);
+			button.parentNode.insertBefore(sortButton, button);
 		}
 		document.getElementById('service13').onload = function() {traitementStockTaniere()};
 		//traitementStockTaniere();
